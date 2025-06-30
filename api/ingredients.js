@@ -1,4 +1,15 @@
 export default function handler(req, res) {
+  // ✅ Allow all origins (or restrict to your frontend URL if needed)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // ✅ Handle preflight request (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // your existing logic...
   if (req.method === 'GET') {
     const { ingredient } = req.query;
 
