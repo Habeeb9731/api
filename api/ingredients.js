@@ -1,59 +1,64 @@
+import { createClient } from '@supabase/supabase-js';
+
+// ✅ Supabase config using your anon key and project URL
+const supabase = createClient(
+  'https://jcjbpgsndupozastbqug.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjamJwZ3NuZHVwb3phc3RicXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyOTIxOTksImV4cCI6MjA2Njg2ODE5OX0.T-PQvG3WNfJonvgiqWzgV6rsggumRzQIT4A5ZVhJZ84'
+);
+
 export const config = {
   api: {
-    bodyParser: true, // enables JSON parsing for POST
+    bodyParser: true,
   },
 };
 
-export default function handler(req, res) {
-  // Enable CORS
+export default async function handler(req, res) {
+  // Allow cross-origin requests (CORS)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Preflight response
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Mock database
-  const db = {
-    apple: { carbs: 13.8, fat: 0.2, protein: 0.3 },
-    paneer: { carbs: 1.2, fat: 20.8, protein: 18.3 },
-    chickpeas: { carbs: 27.4, fat: 2.6, protein: 8.9 }
-  };
-
-  // GET nutrition info
+  // GET /api/ingredients?ingredient=banana
   if (req.method === 'GET') {
     const { ingredient } = req.query;
+
     if (!ingredient) {
-      return res.status(400).json({ message: 'Ingredient is required' });
+      return res.status(400).json({ message: 'Ingredient query param is required' });
     }
 
-    const data = db[ingredient.toLowerCase()];
-    if (data) {
-      return res.status(200).json(data);
-    } else {
-      return res.status(404).json({ message: 'Ingredient not found' });
+    const { data, error } = await supabase
+      .from('ingredients')
+      .select('*')
+      .eq('name', ingredient.toLowerCase())
+      .single();
+
+    if (error) {
+      return res.status(404).json({ message: 'Ingredient not found', error });
     }
+
+    return res.status(200).json(data);
   }
 
-  // POST mock ingredient
+  // POST /api/ingredients (with JSON body)
   if (req.method === 'POST') {
     const { name, carbs, fat, protein } = req.body;
 
     if (!name || carbs == null || fat == null || protein == null) {
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Log it (just for fun, no real storage)
-    console.log('Added ingredient:', { name, carbs, fat, protein });
+    const { data, error } = await supabase
+      .from('ingredients')
+      .insert([{ name: name.toLowerCase(), carbs, fat, protein }]);
 
-    return res.status(201).json({
-      message: 'Ingredient added (mock)',
-      data: { name, carbs, fat, protein }
-    });
+    if (error) {
+      return res.status(400).json({ message: 'Insert failed', error });
+    }
+
+    return res.status(201).json({ message: 'Ingredient added', data });
   }
 
-  // Method not allowed
-  return res.status(405).json({ message: 'Method Not Allowed' });
+  return res.status(405).json({ message: 'Method not allowed' });
 }
