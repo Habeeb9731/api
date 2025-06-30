@@ -1,64 +1,42 @@
-import { createClient } from '@supabase/supabase-js';
-
-// ✅ Supabase config using your anon key and project URL
-const supabase = createClient(
-  'https://jcjbpgsndupozastbqug.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjamJwZ3NuZHVwb3phc3RicXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyOTIxOTksImV4cCI6MjA2Njg2ODE5OX0.T-PQvG3WNfJonvgiqWzgV6rsggumRzQIT4A5ZVhJZ84'
-);
-
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
-
 export default async function handler(req, res) {
-  // Allow cross-origin requests (CORS)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const { method } = req;
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  // GET /api/ingredients?ingredient=banana
-  if (req.method === 'GET') {
-    const { ingredient } = req.query;
+  if (method === 'GET') {
+    const ingredient = req.query.ingredient;
 
     if (!ingredient) {
-      return res.status(400).json({ message: 'Ingredient query param is required' });
+      return res.status(400).json({ error: 'Missing ingredient query parameter' });
     }
 
-    const { data, error } = await supabase
-      .from('ingredients')
-      .select('*')
-      .eq('name', ingredient.toLowerCase())
-      .single();
-
-    if (error) {
-      return res.status(404).json({ message: 'Ingredient not found', error });
-    }
-
-    return res.status(200).json(data);
+    // 🔧 Replace this with actual DB lookup if needed
+    // For now, mock data
+    return res.status(200).json({
+      name: ingredient,
+      carbs: 13.8,
+      fat: 0.2,
+      protein: 0.3
+    });
   }
 
-  // POST /api/ingredients (with JSON body)
-  if (req.method === 'POST') {
+  if (method === 'POST') {
     const { name, carbs, fat, protein } = req.body;
 
     if (!name || carbs == null || fat == null || protein == null) {
-      return res.status(400).json({ message: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing required fields: name, carbs, fat, protein' });
     }
 
-    const { data, error } = await supabase
-      .from('ingredients')
-      .insert([{ name: name.toLowerCase(), carbs, fat, protein }]);
-
-    if (error) {
-      return res.status(400).json({ message: 'Insert failed', error });
-    }
-
-    return res.status(201).json({ message: 'Ingredient added', data });
+    // 🔧 You can connect this part to Supabase, Firebase, or a file/db
+    // Right now it returns a mock "saved" response
+    return res.status(200).json({
+      message: 'Ingredient added (mock)',
+      data: {
+        name,
+        carbs: parseFloat(carbs),
+        fat: parseFloat(fat),
+        protein: parseFloat(protein)
+      }
+    });
   }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+  return res.status(405).json({ error: 'Method Not Allowed' });
 }
